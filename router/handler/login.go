@@ -75,7 +75,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		if util.CheckSignedToken(token) {
 			util.Response[string]{
 				Success: true,
-				Message: "登录成功",
+				Message: "token 校验成功",
 			}.Write(w)
 		} else {
 			util.Response[string]{
