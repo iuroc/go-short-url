@@ -2,7 +2,6 @@ package userrouter
 
 import (
 	"go-short-url/database"
-	"go-short-url/mixin"
 	"go-short-url/util"
 	"net/http"
 	"strings"
@@ -32,7 +31,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		username := strings.TrimSpace(r.FormValue("username"))
 		password := strings.TrimSpace(r.FormValue("password"))
 		// 同时检查用户名和密码的格式
-		if err := mixin.CheckUsernameAndPasswordFormat(username, password); err != nil {
+		if err := util.CheckUsernameAndPasswordFormat(username, password); err != nil {
 			util.Response[any]{
 				Success: false,
 				Message: err.Error(),
@@ -76,7 +75,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		// 使用 JWT 验证
-		if _, err := util.CheckSignedToken(token); err != nil {
+		if _, err := database.CheckSignedToken(token); err != nil {
 			util.Response[string]{
 				Success: true,
 				Message: "token 校验成功",

@@ -2,11 +2,14 @@ package database
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
-	"go-short-url/mixin"
+	"go-short-url/util"
 	"log"
 	"os"
 	"strings"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // 获取数据库连接，并验证 Ping() 情况。
@@ -37,7 +40,7 @@ func InitTables(db *sql.DB, sqlFilePath string) {
 		log.Fatalln("[InitTables]", err)
 	}
 	// 校验管理员密码格式
-	if err = mixin.CheckPasswordFormat(os.Getenv("ROOT_PASSWORD")); err != nil {
+	if err = util.CheckPasswordFormat(os.Getenv("ROOT_PASSWORD")); err != nil {
 		log.Fatalln("[InitTables-6] 管理员初始密码格式错误", err.Error())
 	}
 	querys := strings.Split(string(bytes), ";")
@@ -56,15 +59,15 @@ func InitTables(db *sql.DB, sqlFilePath string) {
 func InitAdminUser(db *sql.DB) {
 	rootUsername := strings.TrimSpace(os.Getenv("ROOT_USERNAME"))
 	rootPassword := strings.TrimSpace(os.Getenv("ROOT_PASSWORD"))
-	err := mixin.CheckUsernameFormat(rootUsername)
+	err := util.CheckUsernameFormat(rootUsername)
 	if err != nil {
 		log.Fatalln("[InitAdminUser-1]", err)
 	}
-	err = mixin.CheckPasswordFormat(rootPassword)
+	err = util.CheckPasswordFormat(rootPassword)
 	if err != nil {
 		log.Fatalln("[InitAdminUser-2]", err)
 	}
-	passwordHash := mixin.HashPassword(rootPassword)
+	passwordHash := util.HashPassword(rootPassword)
 	// 创建管理员账户
 	if exists, _ := AdminExists(db); !exists {
 		if _, err = (User{
@@ -76,4 +79,26 @@ func InitAdminUser(db *sql.DB) {
 		}
 		log.Println("管理员账号自动创建成功")
 	}
+}
+
+func CheckSignedToken(tokenString string) (*User, error) {
+	secretKey := []byte(os.Getenv("JWT_KEY"))
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("签名方法不正确")
+		}
+		return secretKey, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userId := claims["userId"].(int64)
+		userName := claims["user_name"].(string)
+		return &User{
+			Username: userName,
+			Id:       userId,
+		}, nil
+	}
+	return nil, errors.New("校验 Token 失败")
 }

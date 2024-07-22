@@ -2,7 +2,7 @@ package database
 
 import (
 	"database/sql"
-	"go-short-url/mixin"
+	"go-short-url/util"
 	"log"
 	"strings"
 	"time"
@@ -27,7 +27,7 @@ func (u User) Insert(db *sql.DB) (user *User, err error) {
 	if err != nil {
 		log.Fatalln("[Insert]", err)
 	}
-	if lastId, err := mixin.HandleExecError(
+	if lastId, err := util.HandleExecError(
 		stmt.Exec(u.Username, u.Password, u.Role),
 	); err != nil {
 		// 插入失败，用户原因的错误
@@ -75,7 +75,7 @@ func (u User) Update(db *sql.DB) error {
 	if err != nil {
 		log.Fatalln("[(u User) Update]", err)
 	}
-	_, err = mixin.HandleExecError(stmt.Exec(values...))
+	_, err = util.HandleExecError(stmt.Exec(values...))
 	return err
 }
 
@@ -86,7 +86,7 @@ func CheckLogin(db *sql.DB, username string, password string) *User {
 	if err != nil {
 		return nil
 	}
-	if mixin.CheckPasswordHash(password, hashedPassword) {
+	if util.CheckPasswordHash(password, hashedPassword) {
 		return user
 	} else {
 		return nil
