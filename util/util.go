@@ -3,10 +3,12 @@ package util
 import (
 	"encoding/json"
 	"errors"
-	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
 	"regexp"
+	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 // 检查给定的 map 是否缺失必需的键
@@ -76,15 +78,22 @@ func CheckPasswordFormat(password string) error {
 }
 
 // 将明文密码转换为 bcrypt 哈希密码
-func HashPassword(password string) (string, error) {
+func HashPassword(password string) string {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return "", nil
+		log.Fatalln("[HashPassword]", err)
 	}
-	return string(hashedPassword), nil
+	return string(hashedPassword)
 }
 
 // 验证明文密码和哈希密码是否匹配
 func CheckPasswordHash(password string, hash string) bool {
 	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
+}
+
+// 获取当前的 Datetime 字符串
+func GetNowDatetimeString() string {
+	now := time.Now()
+	format := "2006-01-02 15:04:05"
+	return now.Format(format)
 }

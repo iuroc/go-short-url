@@ -14,20 +14,12 @@ func main() {
 		log.Fatalln(err)
 	}
 	// 获取数据库连接
-	db, err := database.GetDB()
-	if err != nil {
-		log.Fatalln("[main] 获取数据库连接失败", err)
-	} else {
-		log.Println("获取数据库连接成功")
-	}
+	db := database.GetDB()
 	defer db.Close()
 	// 初始化数据表
-	err = database.InitTables(db, "init.sql")
-	if err != nil {
-		log.Fatalln("[main] 初始化数据表失败", err)
-	} else {
-		log.Println("初始化数据表成功")
-	}
+	database.InitTables(db, "init.sql")
+	// 初始化管理员账号
+	database.InitAdminUser(db)
 	log.Println("服务启动成功 👉 http://127.0.0.1:9090")
 	http.ListenAndServe("127.0.0.1:9090", router.MainRouter())
 }
