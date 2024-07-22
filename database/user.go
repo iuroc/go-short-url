@@ -13,9 +13,9 @@ type User struct {
 	// 用户名
 	Username string `json:"username"`
 	// bcrypt 哈希密码
-	Password string
+	Password string `json:"-"`
 	// 用户身份，admin 管理员，user 普通用户
-	Role string
+	Role string `json:"-"`
 	// 创建时间
 	CreateTime string `json:"create_time"`
 }
@@ -74,4 +74,28 @@ func (u User) Update(db *sql.DB) error {
 	}
 	_, err = util.HandleExecError(stmt.Exec(values...))
 	return err
+}
+
+// 验证账号密码，密码是明文密码
+func CheckLogin(db *sql.DB, username string, password string) bool {
+	hashedPassword, err := GetUserHashedPassword(db, username)
+	if err != nil {
+		return false
+	}
+	return util.CheckPasswordHash(password, hashedPassword)
+}
+
+// 从数据库获取用户的哈希密码，如果没有找到，则返回 error
+func GetUserHashedPassword(db *sql.DB, username string) (string, error) {
+	stmt, err := db.Prepare("SELECT `password` FROM `go_short_url_user` WHERE `username` = ?")
+	if err != nil {
+		log.Fatalln(err)
+	}
+	row := stmt.QueryRow(username)
+	var hashedPassword string
+	err = row.Scan(&hashedPassword)
+	if err != nil {
+		return "", err
+	}
+	return hashedPassword, nil
 }

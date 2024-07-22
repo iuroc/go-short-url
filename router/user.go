@@ -8,8 +8,7 @@ import (
 // 用户信息处理路由
 func UserRouter() *http.ServeMux {
 	router := http.NewServeMux()
-	router.HandleFunc("/login", func(w http.ResponseWriter, r *http.Request) {
-	})
+	router.HandleFunc("/login", handler.LoginHandler)
 	router.HandleFunc("/register", handler.RegisterHandler)
 	return router
 }

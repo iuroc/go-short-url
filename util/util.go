@@ -3,12 +3,13 @@ package util
 import (
 	"encoding/json"
 	"errors"
+	"github.com/golang-jwt/jwt/v5"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"net/http"
+	"os"
 	"regexp"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 // 检查给定的 map 是否缺失必需的键
@@ -96,4 +97,43 @@ func GetNowDatetimeString() string {
 	now := time.Now()
 	format := "2006-01-02 15:04:05"
 	return now.Format(format)
+}
+
+// 校验用户名和密码的格式
+func CheckUsernameAndPasswordFormat(username string, password string) error {
+	var err error
+	// 检查用户名格式是否正确
+	if err = CheckUsernameFormat(username); err != nil {
+		return err
+	}
+	// 检查密码格式是否正确
+	if err = CheckPasswordFormat(password); err != nil {
+		return err
+	}
+	return nil
+}
+
+// 生成签名后的 Token
+func MakeSignedToken(username string) string {
+	secretKey := []byte(os.Getenv("JWT_KEY"))
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"username": username,
+		"exp":      time.Now().Add(time.Hour * 24).Unix(),
+	})
+	signedToken, err := token.SignedString(secretKey)
+	if err != nil {
+		log.Fatalln("[MakeSignedToken]", err)
+	}
+	return signedToken
+}
+
+func CheckSignedToken(tokenString string) bool {
+	secretKey := []byte(os.Getenv("JWT_KEY"))
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("签名方法不正确")
+		}
+		return secretKey, nil
+	})
+	return err == nil && token.Valid
 }
