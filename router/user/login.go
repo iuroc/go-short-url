@@ -1,7 +1,8 @@
-package handler
+package userrouter
 
 import (
 	"go-short-url/database"
+	"go-short-url/mixin"
 	"go-short-url/util"
 	"net/http"
 	"strings"
@@ -30,7 +31,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 		username := strings.TrimSpace(r.FormValue("username"))
 		password := strings.TrimSpace(r.FormValue("password"))
-		if err := util.CheckUsernameAndPasswordFormat(username, password); err != nil {
+		// 同时检查用户名和密码的格式
+		if err := mixin.CheckUsernameAndPasswordFormat(username, password); err != nil {
 			util.Response[any]{
 				Success: false,
 				Message: err.Error(),
@@ -40,7 +42,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 
 		db := database.GetDB()
 		defer db.Close()
-		if !database.CheckLogin(db, username, password) {
+		user := database.CheckLogin(db, username, password)
+		if user == nil {
 			util.Response[string]{
 				Success: false,
 				Message: "登录失败，用户名或密码错误",
@@ -48,7 +51,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		token := util.MakeSignedToken(username)
+		token := util.MakeSignedToken(user.Id, username)
 
 		http.SetCookie(w, &http.Cookie{
 			Name:     "token",
@@ -59,9 +62,10 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		})
 
 		w.Header().Set("token", token)
-		util.Response[string]{
+		util.Response[database.User]{
 			Success: true,
 			Message: "登录成功",
+			Data:    *user,
 		}.Write(w)
 	} else {
 		token := ""
@@ -72,7 +76,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 		// 使用 JWT 验证
-		if util.CheckSignedToken(token) {
+		if _, err := util.CheckSignedToken(token); err != nil {
 			util.Response[string]{
 				Success: true,
 				Message: "token 校验成功",

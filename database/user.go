@@ -2,13 +2,14 @@ package database
 
 import (
 	"database/sql"
-	"go-short-url/util"
+	"go-short-url/mixin"
 	"log"
 	"strings"
+	"time"
 )
 
 type User struct {
-	// 记录编号
+	// 记录 ID
 	Id int64 `json:"id"`
 	// 用户名
 	Username string `json:"username"`
@@ -17,7 +18,8 @@ type User struct {
 	// 用户身份，admin 管理员，user 普通用户
 	Role string `json:"-"`
 	// 创建时间
-	CreateTime string `json:"create_time"`
+	CreateTime time.Time `json:"createTime"`
+	UpdateTime time.Time `json:"updateTime"`
 }
 
 func (u User) Insert(db *sql.DB) (user *User, err error) {
@@ -25,7 +27,7 @@ func (u User) Insert(db *sql.DB) (user *User, err error) {
 	if err != nil {
 		log.Fatalln("[Insert]", err)
 	}
-	if lastId, err := util.HandleExecError(
+	if lastId, err := mixin.HandleExecError(
 		stmt.Exec(u.Username, u.Password, u.Role),
 	); err != nil {
 		// 插入失败，用户原因的错误
@@ -33,7 +35,8 @@ func (u User) Insert(db *sql.DB) (user *User, err error) {
 	} else {
 		// 插入成功
 		u.Id = lastId
-		u.CreateTime = util.GetNowDatetimeString()
+		u.CreateTime = time.Now()
+		u.UpdateTime = time.Now()
 		return &u, nil
 	}
 }
@@ -70,32 +73,39 @@ func (u User) Update(db *sql.DB) error {
 	values = append(values, u.Id)
 	stmt, err := db.Prepare("UPDATE `go_short_url_user` SET " + strings.Join(fields, ", ") + " WHERE `id` = ?")
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("[(u User) Update]", err)
 	}
-	_, err = util.HandleExecError(stmt.Exec(values...))
+	_, err = mixin.HandleExecError(stmt.Exec(values...))
 	return err
 }
 
-// 验证账号密码，密码是明文密码
-func CheckLogin(db *sql.DB, username string, password string) bool {
-	hashedPassword, err := GetUserHashedPassword(db, username)
+// 验证账号密码，密码是明文密码，如果检查通过，则会返回 User 对象，否则返回 nil
+func CheckLogin(db *sql.DB, username string, password string) *User {
+	user, err := GetUserByUsername(db, username)
+	hashedPassword := user.Password
 	if err != nil {
-		return false
+		return nil
 	}
-	return util.CheckPasswordHash(password, hashedPassword)
+	if mixin.CheckPasswordHash(password, hashedPassword) {
+		return user
+	} else {
+		return nil
+	}
 }
 
-// 从数据库获取用户的哈希密码，如果没有找到，则返回 error
-func GetUserHashedPassword(db *sql.DB, username string) (string, error) {
-	stmt, err := db.Prepare("SELECT `password` FROM `go_short_url_user` WHERE `username` = ?")
+// 根据用户名获取 User 对象
+func GetUserByUsername(db *sql.DB, username string) (*User, error) {
+	stmt, err := db.Prepare("SELECT `id`, `username`, `password`, `role`, `create_time`, `update_time` FROM `go_short_url_user` WHERE `username` = ?")
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln("[GetUserByUsername-1]", err)
 	}
 	row := stmt.QueryRow(username)
-	var hashedPassword string
-	err = row.Scan(&hashedPassword)
-	if err != nil {
-		return "", err
+	user := User{}
+	err = row.Scan(&user.Id, &user.Username, &user.Password, &user.Role, &user.CreateTime, &user.UpdateTime)
+	if err == sql.ErrNoRows {
+		return nil, err
+	} else if err != nil {
+		log.Fatalln("[GetUserByUsername-2]", err)
 	}
-	return hashedPassword, nil
+	return &user, nil
 }

@@ -1,7 +1,8 @@
-package handler
+package userrouter
 
 import (
 	"go-short-url/database"
+	"go-short-url/mixin"
 	"go-short-url/util"
 	"net/http"
 	"strings"
@@ -17,7 +18,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	username := strings.TrimSpace(r.FormValue("username"))
 	password := strings.TrimSpace(r.FormValue("password"))
-	if err := util.CheckUsernameAndPasswordFormat(username, password); err != nil {
+	if err := mixin.CheckUsernameAndPasswordFormat(username, password); err != nil {
 		util.Response[any]{
 			Success: false,
 			Message: err.Error(),
@@ -25,7 +26,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// 注册账号开始
-	passwordHash := util.HashPassword(password)
+	passwordHash := mixin.HashPassword(password)
 	db := database.GetDB()
 	defer db.Close()
 	if user, err := (database.User{

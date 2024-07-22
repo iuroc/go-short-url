@@ -3,12 +3,10 @@ package database
 import (
 	"database/sql"
 	"fmt"
-	"go-short-url/util"
+	"go-short-url/mixin"
 	"log"
 	"os"
 	"strings"
-
-	_ "github.com/go-sql-driver/mysql"
 )
 
 // 获取数据库连接，并验证 Ping() 情况。
@@ -23,6 +21,9 @@ func GetDB() *sql.DB {
 	if err != nil {
 		log.Fatalln("[GetDB] 获取数据库连接失败", err)
 	}
+	if _, err = db.Exec("SET time_zone = '+08:00'"); err != nil {
+		log.Fatalln("[GetDB] 初始化设置会话时区失败", err)
+	}
 	if err = db.Ping(); err != nil {
 		log.Fatalln("[GetDB] 获取数据库连接失败", err)
 	}
@@ -36,7 +37,7 @@ func InitTables(db *sql.DB, sqlFilePath string) {
 		log.Fatalln("[InitTables]", err)
 	}
 	// 校验管理员密码格式
-	if err = util.CheckPasswordFormat(os.Getenv("ROOT_PASSWORD")); err != nil {
+	if err = mixin.CheckPasswordFormat(os.Getenv("ROOT_PASSWORD")); err != nil {
 		log.Fatalln("[InitTables-6] 管理员初始密码格式错误", err.Error())
 	}
 	querys := strings.Split(string(bytes), ";")
@@ -55,15 +56,15 @@ func InitTables(db *sql.DB, sqlFilePath string) {
 func InitAdminUser(db *sql.DB) {
 	rootUsername := strings.TrimSpace(os.Getenv("ROOT_USERNAME"))
 	rootPassword := strings.TrimSpace(os.Getenv("ROOT_PASSWORD"))
-	err := util.CheckUsernameFormat(rootUsername)
+	err := mixin.CheckUsernameFormat(rootUsername)
 	if err != nil {
 		log.Fatalln("[InitAdminUser-1]", err)
 	}
-	err = util.CheckPasswordFormat(rootPassword)
+	err = mixin.CheckPasswordFormat(rootPassword)
 	if err != nil {
 		log.Fatalln("[InitAdminUser-2]", err)
 	}
-	passwordHash := util.HashPassword(rootPassword)
+	passwordHash := mixin.HashPassword(rootPassword)
 	// 创建管理员账户
 	if exists, _ := AdminExists(db); !exists {
 		if _, err = (User{

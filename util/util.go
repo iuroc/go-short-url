@@ -4,11 +4,10 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/golang-jwt/jwt/v5"
-	"golang.org/x/crypto/bcrypt"
+	"go-short-url/database"
 	"log"
 	"net/http"
 	"os"
-	"regexp"
 	"time"
 )
 
@@ -60,63 +59,11 @@ func (r Response[DataType]) Write(w http.ResponseWriter) {
 	}
 }
 
-// 检查用户名格式是否正确
-func CheckUsernameFormat(username string) error {
-	if regexp.MustCompile(`^\w{3,20}$`).MatchString(username) {
-		return nil
-	} else {
-		return errors.New("用户名格式错误，要求 3-20 位，可使用数字、字母、下划线")
-	}
-}
-
-// 检查密码格式是否正确
-func CheckPasswordFormat(password string) error {
-	if regexp.MustCompile(`^[\x00-\x7F]{8,20}$`).MatchString(password) {
-		return nil
-	} else {
-		return errors.New("密码格式错误，要求 8-20 位，可使用数字、字母、特殊符号")
-	}
-}
-
-// 将明文密码转换为 bcrypt 哈希密码
-func HashPassword(password string) string {
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		log.Fatalln("[HashPassword]", err)
-	}
-	return string(hashedPassword)
-}
-
-// 验证明文密码和哈希密码是否匹配
-func CheckPasswordHash(password string, hash string) bool {
-	return bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil
-}
-
-// 获取当前的 Datetime 字符串
-func GetNowDatetimeString() string {
-	now := time.Now()
-	format := "2006-01-02 15:04:05"
-	return now.Format(format)
-}
-
-// 校验用户名和密码的格式
-func CheckUsernameAndPasswordFormat(username string, password string) error {
-	var err error
-	// 检查用户名格式是否正确
-	if err = CheckUsernameFormat(username); err != nil {
-		return err
-	}
-	// 检查密码格式是否正确
-	if err = CheckPasswordFormat(password); err != nil {
-		return err
-	}
-	return nil
-}
-
 // 生成签名后的 Token
-func MakeSignedToken(username string) string {
+func MakeSignedToken(userId int64, username string) string {
 	secretKey := []byte(os.Getenv("JWT_KEY"))
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId":   userId,
 		"username": username,
 		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 	})
@@ -127,7 +74,7 @@ func MakeSignedToken(username string) string {
 	return signedToken
 }
 
-func CheckSignedToken(tokenString string) bool {
+func CheckSignedToken(tokenString string) (*database.User, error) {
 	secretKey := []byte(os.Getenv("JWT_KEY"))
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -135,5 +82,26 @@ func CheckSignedToken(tokenString string) bool {
 		}
 		return secretKey, nil
 	})
-	return err == nil && token.Valid
+	if err != nil {
+		return nil, err
+	}
+	if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+		userId := claims["userId"].(int64)
+		userName := claims["user_name"].(string)
+		return &database.User{
+			Username: userName,
+			Id:       userId,
+		}, nil
+	}
+	return nil, errors.New("校验 Token 失败")
+}
+
+// 将 UTC ISO 时间转换为本地时间
+func ConvertUtcIsoToLocalTime(utcIso string) (string, error) {
+	utcTime, err := time.Parse(time.RFC3339, utcIso)
+	if err != nil {
+		return "", err
+	}
+	localTime := utcTime.Local()
+	return localTime.Format("2006-01-02 15:04:05"), nil
 }
