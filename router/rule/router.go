@@ -1,4 +1,4 @@
-package rulerouter
+package rule
 
 import "net/http"
 
