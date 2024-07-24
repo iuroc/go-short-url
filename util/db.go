@@ -5,6 +5,7 @@ package util
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -39,26 +40,7 @@ func GetDNS() string {
 	)
 }
 
-// InitTables 初始化数据表，如果不存在则自动创建。
-//
-// 包含一次数据库连接，如果数据库连接失败则结束程序。
-func InitTables() {
-	db := GetDB()
-	defer db.Close()
-	content, err := os.ReadFile("init.sql")
-	if err != nil {
-		log.Fatalln("[InitTables] 读取 SQL 文件失败", err)
-	}
-	match := regexp.MustCompile(`(?s)CREATE TABLE .*?(;|$)`)
-	result := match.FindAllString(string(content), -1)
-	for _, line := range result {
-		if _, err = db.Exec(line); err != nil {
-			log.Fatalln("[InitTables] 执行 CREATE TABLE 失败", err)
-		}
-	}
-}
-
-// 设置 MySQL 数据库的时区
+// SetTimeZone 设置 MySQL 数据库的时区
 //
 // 通过读取 TIME_ZONE 环境变量来设置时区，默认是 +08:00。
 //
@@ -72,4 +54,37 @@ func SetTimeZone(db *sql.DB) error {
 	}
 	_, err := db.Exec(fmt.Sprintf(`SET time_zone = "%s"`, timeZone))
 	return err
+}
+
+// ExecErrorHandler 处理 Exec 执行的异常，示例：
+//
+//	ExecErrorHandler(stmt.Exec())
+func ExecErrorHandler(result sql.Result, err error) (int64, error) {
+	if err != nil {
+		return -1, err
+	}
+	if count, err := result.RowsAffected(); err != nil {
+		log.Fatalln(err)
+	} else if count == 0 {
+		return -1, errors.New("受影响的行数为 0")
+	}
+	return result.LastInsertId()
+}
+
+// InitTables 初始化数据表，如果不存在则自动创建。
+//
+// 包含一次数据库连接，如果数据库连接失败则结束程序。
+func InitTables(db *sql.DB) {
+	content, err := os.ReadFile("init.sql")
+	if err != nil {
+		log.Fatalln("[InitTables] 读取 SQL 文件失败", err)
+	}
+	match := regexp.MustCompile(`(?s)CREATE TABLE .*?(;|$)`)
+	result := match.FindAllString(string(content), -1)
+	for _, line := range result {
+		if _, err = db.Exec(line); err != nil {
+			log.Fatalln("[InitTables] 执行 CREATE TABLE 失败", err)
+		}
+	}
+	log.Println("数据表初始化完成")
 }

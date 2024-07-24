@@ -24,6 +24,11 @@ func ApiRouter() *http.ServeMux {
 	return router
 }
 
+// ParseFormMiddleware 中间件，用于解析 application/x-www-form-urlencoded 格式的 Body
+//
+// 在 Body 格式错误时，会调用：
+//
+//	util.Res{Message: "参数错误"}.Write(w)
 func ParseFormMiddleware(handler http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.ParseForm() != nil {
