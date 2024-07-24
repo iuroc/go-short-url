@@ -28,8 +28,12 @@ func (rule Rule) Insert(db *sql.DB) (r *Rule, err error) {
 	if err != nil {
 		log.Fatalln("[(rule Rule) Insert-1]", err)
 	}
-	
-	insertId, err := util.ExecErrorHandler(stmt.Exec(rule.Suffix, rule.Target, rule.UserId, rule.Expires))
+	var expiresString *string
+	if rule.Expires != nil {
+		s := rule.Expires.Format(time.DateTime)
+		expiresString = &s
+	}
+	insertId, err := util.ExecErrorHandler(stmt.Exec(rule.Suffix, rule.Target, rule.UserId, expiresString))
 	if err != nil {
 		return nil, err
 	} else {
@@ -38,4 +42,27 @@ func (rule Rule) Insert(db *sql.DB) (r *Rule, err error) {
 		rule.UpdateTime = time.Now()
 		return &rule, nil
 	}
+}
+
+func SelectTargetBySuffix(db *sql.DB, suffix string) (*Rule, error) {
+	stmt, err := db.Prepare("SELECT `id`, `suffix`, `target`, `request`, `user_id`, `expires`, `create_time`, `update_time` FROM `go_short_url_rule` WHERE `suffix` = ?")
+	if err != nil {
+		return nil, err
+	}
+	rule := Rule{}
+	row := stmt.QueryRow(suffix)
+	createTime := ""
+	updateTime := ""
+	expires := sql.NullString{}
+	err = row.Scan(&rule.Id, &rule.Suffix, &rule.Target, &rule.Request, &rule.UserId, &expires, &createTime, &updateTime)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	rule.CreateTime = util.ParseTimeFromDB(createTime)
+	rule.UpdateTime = util.ParseTimeFromDB(updateTime)
+	if expires.Valid {
+		datetime := util.ParseTimeFromDB(expires.String)
+		rule.Expires = &datetime
+	}
+	return &rule, nil
 }

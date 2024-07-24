@@ -4,6 +4,7 @@ import (
 	"go-short-url/middleware"
 	rulerouter "go-short-url/router/rule"
 	userrouter "go-short-url/router/user"
+	"go-short-url/util"
 	"net/http"
 )
 
@@ -11,7 +12,14 @@ import (
 func Router() *http.ServeMux {
 	router := http.NewServeMux()
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("此时即将重定向"))
+		db := util.GetDB()
+		defer db.Close()
+		rule, err := rulerouter.SelectTargetBySuffix(db, "iuroc")
+		if err != nil {
+			util.Res{Message: err.Error()}.Write(w)
+		} else {
+			util.Res{Success: true, Message: "操作成功", Data: rule}.Write(w)
+		}
 	})
 	router.Handle("/api/", http.StripPrefix("/api", middleware.ParseFormMiddleware(ApiRouter())))
 	return router
