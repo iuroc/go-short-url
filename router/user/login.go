@@ -3,6 +3,9 @@ package user
 import (
 	"go-short-url/util"
 	"net/http"
+	"time"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
 func loginHandlerFunc(w http.ResponseWriter, r *http.Request) {
@@ -16,20 +19,26 @@ func loginHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		}
 		db := util.GetDB()
 		defer db.Close()
-		user := SelectUserByNameAndPassword(db, username, password)
-		if user == nil {
-			util.Res{Message: "查询失败"}.Write(w)
+		user := SelectUserByName(db, username)
+		if user == nil || bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(password)) != nil {
+			util.Res{Message: "用户名或密码错误"}.Write(w)
 		} else {
-			util.Res{Data: user, Message: "查询成功"}.Write(w)
+			cookie := http.Cookie{
+				Name:  "token",
+				Value: util.MakeToken(user.Id, user.Username),
+				Expires: time.Now().Add(time.Hour * 24 * 60),
+			}
+			http.SetCookie(w, &cookie)
+			util.Res{Success: true, Data: user, Message: "登录成功"}.Write(w)
 		}
 	} else {
 		// 验证 Cookie，当字段未找到时，会返回错误
 		token, err := r.Cookie("token")
-		if err != nil {
+		if err != nil || !util.CheckToken(token.Value) {
 			// Cookie 中 Token 字段缺失
 			util.Res{Message: "token 校验失败"}.Write(w)
-			return
+		} else {
+			util.Res{Success: true, Message: "token 校验成功"}.Write(w)
 		}
-		util.Res{Data: token.Value}.Write(w)
 	}
 }

@@ -2,7 +2,12 @@ package util
 
 import (
 	"errors"
+	"log"
+	"os"
 	"regexp"
+	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 // 检查密码格式是否正确
@@ -35,4 +40,34 @@ func CheckUsernameAndPasswordFormat(username string, password string) error {
 		return err
 	}
 	return nil
+}
+
+// MakeToken 生成 JWT 字符串，从环境变量读取 JWT_KEY。
+func MakeToken(id int64, username string) string {
+	key := []byte(os.Getenv("JWT_KEY"))
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"userId":   id,
+		"username": username,
+		"exp":      time.Now().Add(time.Hour * 24 * 60).Unix(),
+	})
+	tokenString, err := token.SignedString(key)
+	if err != nil {
+		log.Println(err)
+	}
+	return tokenString
+}
+
+func CheckToken(tokenString string) bool {
+	key := []byte(os.Getenv("JWT_KEY"))
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, errors.New("未知的签名算法")
+		}
+		return key, nil
+	})
+	if err != nil {
+		return false
+	}
+	_, ok := token.Claims.(jwt.MapClaims)
+	return ok && token.Valid
 }
