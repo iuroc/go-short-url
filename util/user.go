@@ -57,7 +57,13 @@ func MakeToken(id int64, username string) string {
 	return tokenString
 }
 
-func CheckToken(tokenString string) bool {
+type TokenInfo struct {
+	Token    *jwt.Token
+	UserID   int64
+	Username string
+}
+
+func CheckToken(tokenString string) (*TokenInfo, error) {
 	key := []byte(os.Getenv("JWT_KEY"))
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -66,8 +72,22 @@ func CheckToken(tokenString string) bool {
 		return key, nil
 	})
 	if err != nil {
-		return false
+		return nil, err
 	}
 	_, ok := token.Claims.(jwt.MapClaims)
-	return ok && token.Valid
+	var userId int64
+	var username string
+	if chaims, ok := token.Claims.(jwt.MapClaims); ok {
+		userId = int64(chaims["userId"].(float64))
+		username = chaims["username"].(string)
+	}
+	if ok && token.Valid {
+		return &TokenInfo{
+			Token:    token,
+			UserID:   userId,
+			Username: username,
+		}, nil
+	} else {
+		return nil, errors.New("校验失败")
+	}
 }

@@ -1,9 +1,9 @@
 package router
 
 import (
+	"go-short-url/middleware"
 	rulerouter "go-short-url/router/rule"
 	userrouter "go-short-url/router/user"
-	"go-short-url/util"
 	"net/http"
 )
 
@@ -13,28 +13,13 @@ func Router() *http.ServeMux {
 	router.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("此时即将重定向"))
 	})
-	router.Handle("/api/", http.StripPrefix("/api", ParseFormMiddleware(ApiRouter())))
+	router.Handle("/api/", http.StripPrefix("/api", middleware.ParseFormMiddleware(ApiRouter())))
 	return router
 }
 
 func ApiRouter() *http.ServeMux {
 	router := http.NewServeMux()
 	router.Handle("/user/", http.StripPrefix("/user", userrouter.Router()))
-	router.Handle("/rule/", http.StripPrefix("/rule", rulerouter.Router()))
+	router.Handle("/rule/", http.StripPrefix("/rule", middleware.CheckTokenMiddleware(rulerouter.Router())))
 	return router
-}
-
-// ParseFormMiddleware 中间件，用于解析 application/x-www-form-urlencoded 格式的 Body
-//
-// 在 Body 格式错误时，会调用：
-//
-//	util.Res{Message: "参数错误"}.Write(w)
-func ParseFormMiddleware(handler http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.ParseForm() != nil {
-			util.Res{Message: "参数错误"}.Write(w)
-		} else {
-			handler.ServeHTTP(w, r)
-		}
-	})
 }

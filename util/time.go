@@ -25,3 +25,11 @@ func ParseTimeFromDB(datetime string) time.Time {
 	}
 	return t
 }
+
+// 将 time.Time 对象转换为不含时区信息的 Datetime 格式，
+// 将根据 DB_TIME_ZONE 环境变量，生成对应时区的 datetime。
+//
+// 从前端读取 ISO 时间后，先转换为 [time.Time]，然后再用本方法转为 datetime 存入数据库。
+func TimeToDatetime(t time.Time) string {
+	return t.In(GetLocation()).Format(time.DateTime)
+}

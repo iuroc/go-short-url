@@ -59,7 +59,7 @@ func SetTimeZone(db *sql.DB) error {
 // ExecErrorHandler 处理 Exec 执行的异常，示例：
 //
 //	ExecErrorHandler(stmt.Exec())
-func ExecErrorHandler(result sql.Result, err error) (int64, error) {
+func ExecErrorHandler(result sql.Result, err error) (lastInsertId int64, returnErr error) {
 	if err != nil {
 		return -1, err
 	}

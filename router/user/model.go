@@ -6,12 +6,11 @@ package user
 import (
 	"database/sql"
 	"go-short-url/util"
+	"golang.org/x/crypto/bcrypt"
 	"log"
 	"os"
 	"strings"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 // User 用户信息

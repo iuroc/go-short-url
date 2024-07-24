@@ -2,10 +2,9 @@ package user
 
 import (
 	"go-short-url/util"
+	"golang.org/x/crypto/bcrypt"
 	"net/http"
 	"time"
-
-	"golang.org/x/crypto/bcrypt"
 )
 
 func loginHandlerFunc(w http.ResponseWriter, r *http.Request) {
@@ -24,8 +23,8 @@ func loginHandlerFunc(w http.ResponseWriter, r *http.Request) {
 			util.Res{Message: "用户名或密码错误"}.Write(w)
 		} else {
 			cookie := http.Cookie{
-				Name:  "token",
-				Value: util.MakeToken(user.Id, user.Username),
+				Name:    "token",
+				Value:   util.MakeToken(user.Id, user.Username),
 				Expires: time.Now().Add(time.Hour * 24 * 60),
 			}
 			http.SetCookie(w, &cookie)
@@ -33,8 +32,13 @@ func loginHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		}
 	} else {
 		// 验证 Cookie，当字段未找到时，会返回错误
-		token, err := r.Cookie("token")
-		if err != nil || !util.CheckToken(token.Value) {
+		tokenCookie, err := r.Cookie("token")
+		if err != nil {
+			util.Res{Message: "token 校验失败"}.Write(w)
+			return
+		}
+		_, err = util.CheckToken(tokenCookie.Value)
+		if err != nil {
 			// Cookie 中 Token 字段缺失
 			util.Res{Message: "token 校验失败"}.Write(w)
 		} else {
