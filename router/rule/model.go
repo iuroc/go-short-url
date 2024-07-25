@@ -86,3 +86,15 @@ func SelectTargetBySuffix(db *sql.DB, suffix string) (*Rule, error) {
 	}
 	return &rule, nil
 }
+
+func DeleteById(db *sql.DB, id int64) error {
+	stmt, err := db.Prepare("DELETE FROM `go_short_url_rule` WHERE `id` = ?")
+	if err != nil {
+		log.Fatalln("[DeleteById]", err)
+	}
+	_, err = util.ExecErrorHandler(stmt.Exec(id))
+	if err != nil {
+		return err
+	}
+	return nil
+}
