@@ -72,7 +72,6 @@ func createHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		} else {
 			util.Res{Success: true, Message: "更新成功", Data: rule}.Write(w)
 		}
-
 	} else {
 		err = rule.Insert(db)
 		if err != nil {
