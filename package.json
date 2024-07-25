@@ -4,9 +4,16 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "client:build": "pnpm --dir client build",
+    "client:dev": "pnpm --dir client dev",
+    "client:preview": "pnpm --dir client preview",
+    "server:start": "cd server && go run main.go",
+    "dev": "concurrently \"pnpm client:dev\" \"pnpm server:start\""
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
 }
