@@ -4,11 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "client:build": "pnpm --dir client build",
-    "client:dev": "pnpm --dir client dev",
-    "client:preview": "pnpm --dir client preview",
-    "server:start": "cd server && go run main.go",
-    "dev": "concurrently \"pnpm client:dev\" \"pnpm server:start\""
+    "serve": "cd server && go run main.go",
+    "dev": "pnpm --dir client dev",
+    "build": "pnpm --dir client build"
   },
   "keywords": [],
   "author": "",
