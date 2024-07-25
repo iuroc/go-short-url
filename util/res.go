@@ -18,5 +18,6 @@ func (r Res) Write(w http.ResponseWriter) {
 	if err != nil {
 		w.Write([]byte(`{"success":false,"message":"系统错误","data":null}`))
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.Write(bs)
 }

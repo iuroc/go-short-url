@@ -1,12 +1,6 @@
 package main
 
-import (
-	"fmt"
-)
+import ()
 
 func main() {
-	a := 0
-	b := &a
-	*b = 100
-	fmt.Println(a)
 }

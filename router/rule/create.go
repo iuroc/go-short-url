@@ -33,21 +33,18 @@ func createHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	}
 
 	expiresString := strings.TrimSpace(r.FormValue("expires"))
-	var expires *time.Time
+	rule := Rule{
+		Suffix: suffix,
+		Target: target,
+		UserId: token.UserID,
+	}
 	if expiresString != "" {
 		t, err := time.Parse(time.RFC3339, expiresString)
 		if err != nil {
 			util.Res{Message: "expires 字段必须是 RFC3339 格式的日期时间"}.Write(w)
 			return
 		}
-		t = t.In(util.GetLocation())
-		expires = &t
-	}
-	rule := Rule{
-		Suffix:  suffix,
-		Target:  target,
-		UserId:  token.UserID,
-		Expires: expires,
+		rule.Expires = &t
 	}
 	db := util.GetDB()
 	defer db.Close()
