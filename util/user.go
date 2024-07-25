@@ -59,7 +59,7 @@ func MakeToken(id int64, username string) string {
 
 type TokenInfo struct {
 	Token    *jwt.Token
-	UserID   int64
+	UserId   int64
 	Username string
 }
 
@@ -84,7 +84,7 @@ func CheckToken(tokenString string) (*TokenInfo, error) {
 	if ok && token.Valid {
 		return &TokenInfo{
 			Token:    token,
-			UserID:   userId,
+			UserId:   userId,
 			Username: username,
 		}, nil
 	} else {

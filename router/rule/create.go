@@ -5,6 +5,7 @@ import (
 	"go-short-url/util"
 	"net/http"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -12,6 +13,21 @@ import (
 func createHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	suffix := strings.TrimSpace(r.FormValue("suffix"))
 	target := strings.TrimSpace(r.FormValue("target"))
+	update := strings.TrimSpace(r.FormValue("update")) == "true"
+	ruleIdStr := strings.TrimSpace(r.FormValue("id"))
+	var ruleId int64
+	if update {
+		if ruleIdStr == "" {
+			util.Res{Message: "id 不能为空"}.Write(w)
+			return
+		}
+		if id, err := strconv.ParseInt(ruleIdStr, 10, 64); err != nil {
+			util.Res{Message: "id 格式错误，请输入 int"}.Write(w)
+			return
+		} else {
+			ruleId = id
+		}
+	}
 
 	token := r.Context().Value(middleware.TokenKey).(*util.TokenInfo)
 	if suffix == "" || target == "" {
@@ -36,7 +52,7 @@ func createHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	rule := Rule{
 		Suffix: suffix,
 		Target: target,
-		UserId: token.UserID,
+		UserId: token.UserId,
 	}
 	if expiresString != "" {
 		t, err := time.Parse(time.RFC3339, expiresString)
@@ -48,14 +64,25 @@ func createHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	}
 	db := util.GetDB()
 	defer db.Close()
-	insertId, err := rule.Insert(db)
-	if err != nil {
-		if strings.Contains(err.Error(), "Duplicate entry") {
-			util.Res{Message: "后缀已被使用，请换一个重试"}.Write(w)
+	if update {
+		rule.Id = ruleId
+		err = rule.Update(db)
+		if err != nil && err.Error() != "受影响的行数为 0" {
+			util.Res{Message: "操作失败"}.Write(w)
 		} else {
-			util.Res{Message: err.Error()}.Write(w)
+			util.Res{Success: true, Message: "更新成功", Data: rule}.Write(w)
 		}
-		return
+
+	} else {
+		err = rule.Insert(db)
+		if err != nil {
+			if strings.Contains(err.Error(), "Duplicate entry") {
+				util.Res{Message: "后缀已被使用，请换一个重试"}.Write(w)
+			} else {
+				util.Res{Message: "操作失败"}.Write(w)
+			}
+			return
+		}
+		util.Res{Success: true, Message: "创建成功", Data: rule}.Write(w)
 	}
-	util.Res{Success: true, Message: "创建成功", Data: insertId}.Write(w)
 }

@@ -25,18 +25,18 @@ type User struct {
 	UpdateTime   time.Time `json:"updateTime"`
 }
 
-func (u User) Insert(db *sql.DB) (*User, error) {
+func (u *User) Insert(db *sql.DB) error {
 	stmt, err := db.Prepare("INSERT INTO `go_short_url_user` (`username`, `password`, `role`) VALUES (?, ?, ?)")
 	if err != nil {
 		log.Fatalln("[(u User) Insert-1]", err)
 	}
 	if insertId, err := util.ExecErrorHandler(stmt.Exec(u.Username, u.PasswordHash, u.Role)); err != nil {
-		return nil, err
+		return err
 	} else {
 		u.Id = insertId
 		u.CreateTime = time.Now()
 		u.UpdateTime = time.Now()
-		return &u, nil
+		return nil
 	}
 }
 
@@ -54,11 +54,12 @@ func InitAdmin(db *sql.DB) {
 	if err != nil {
 		log.Fatalln("[InitAdmin-2]", err)
 	}
-	if _, err = (User{
+	user := User{
 		Username:     username,
 		PasswordHash: string(hashedPassword),
 		Role:         "admin",
-	}.Insert(db)); err != nil {
+	}
+	if err = user.Insert(db); err != nil {
 		log.Fatalln("[InitAdmin-3]", err)
 	}
 	log.Println("管理员账户初始创建完成")

@@ -23,7 +23,7 @@ func Router() *http.ServeMux {
 			util.Res{Message: "后缀格式不正确"}.Write(w)
 			return
 		}
-		rule, err := rulerouter.SelectTargetBySuffix(db, result[1])
+		rule, err := rulerouter.SelectRuleBySuffix(db, result[1])
 		if err != nil {
 			if err == sql.ErrNoRows {
 				util.Res{Message: "未找到该短链接规则"}.Write(w)

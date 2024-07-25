@@ -21,11 +21,12 @@ func registerHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		log.Fatalln("[registerHandlerFunc]", err)
 	}
-	user, err := User{
+	user := User{
 		Username:     username,
 		PasswordHash: string(hash),
 		Role:         "user",
-	}.Insert(db)
+	}
+	err = user.Insert(db)
 	if err != nil {
 		if strings.Contains(err.Error(), "Duplicate entry") {
 			util.Res{Message: "用户名已存在，请换一个重试"}.Write(w)

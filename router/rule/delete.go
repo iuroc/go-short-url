@@ -1,6 +1,7 @@
 package rule
 
 import (
+	"go-short-url/middleware"
 	"go-short-url/util"
 	"net/http"
 	"strconv"
@@ -14,7 +15,8 @@ func deleteHandlerFunc(w http.ResponseWriter, r *http.Request) {
 	}
 	db := util.GetDB()
 	defer db.Close()
-	err = DeleteById(db, id)
+	token := r.Context().Value(middleware.TokenKey).(*util.TokenInfo)
+	err = DeleteById(db, token.UserId, id)
 	if err != nil {
 		util.Res{Message: "删除失败"}.Write(w)
 		return
