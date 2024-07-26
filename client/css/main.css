@@ -1,0 +1,22 @@
+.login-box {
+    max-width: 450px;
+    margin: 150px auto;
+
+    & .title {
+        letter-spacing: 2px;
+    }
+
+    & .link-success {
+        --bs-focus-ring-color: var(--bs-success-border-subtle);
+    }
+
+    & .link-primary {
+        --bs-focus-ring-color: var(--bs-primary-border-subtle);
+    }
+}
+
+@media (max-width: 576px) {
+    .login-box {
+        margin: 100px auto;
+    }
+}

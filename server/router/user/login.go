@@ -12,8 +12,20 @@ func loginHandlerFunc(w http.ResponseWriter, r *http.Request) {
 		// 验证表单
 		username := r.Form.Get("username")
 		password := r.Form.Get("password")
-		if err := util.CheckUsernameAndPasswordFormat(username, password); err != nil {
-			util.Res{Message: err.Error()}.Write(w)
+		if username == "" {
+			util.Res{Message: "用户名不能为空"}.Write(w)
+			return
+		}
+		if len(username) > 50 {
+			util.Res{Message: "用户名过长"}.Write(w)
+			return
+		}
+		if password == "" {
+			util.Res{Message: "密码不能为空"}.Write(w)
+			return
+		}
+		if len(password) > 50 {
+			util.Res{Message: "密码过长"}.Write(w)
 			return
 		}
 		db := util.GetDB()
@@ -37,12 +49,15 @@ func loginHandlerFunc(w http.ResponseWriter, r *http.Request) {
 			util.Res{Message: "token 校验失败"}.Write(w)
 			return
 		}
-		_, err = util.CheckToken(tokenCookie.Value)
+		tokenInfo, err := util.CheckToken(tokenCookie.Value)
 		if err != nil {
 			// Cookie 中 Token 字段缺失
 			util.Res{Message: "token 校验失败"}.Write(w)
 		} else {
-			util.Res{Success: true, Message: "token 校验成功"}.Write(w)
+			db := util.GetDB()
+			defer db.Close()
+			user := SelectUserByName(db, tokenInfo.Username)
+			util.Res{Success: true, Message: "token 校验成功", Data: user}.Write(w)
 		}
 	}
 }

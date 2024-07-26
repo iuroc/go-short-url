@@ -12,7 +12,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "vanjs-core": "^1.5.1"
+    "bootstrap": "^5.3.3",
+    "vanjs-core": "^1.5.1",
+    "vanjs-router": "^2.0.6"
   },
   "type": "module",
   "devDependencies": {
